@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aplikasi Kasir Sederhana</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        transition: background 0.3s, color 0.3s;
+      }
+      .dark {
+        background: #121212;
+        color: #e5e5e5;
+      }
+      input,
+      button {
+        padding: 5px;
+        margin: 5px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #444;
+        padding: 8px;
+        text-align: center;
+      }
+      #struk {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px dashed #333;
+        width: 300px;
+        background: white;
+        color: black;
+      }
+
+      /* CETAK HANYA STRUK */
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #struk,
+        #struk * {
+          visibility: visible;
+        }
+        #struk {
+          position: absolute;
+          left: 0;
+          top: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Aplikasi Kasir</h2>
+    <button onclick="toggleDarkMode()">🌙 Mode Gelap</button>
+
+    <div>
+      <input id="nama" placeholder="Nama Barang" />
+      <input id="harga" type="number" placeholder="Harga" />
+      <input id="jumlah" type="number" placeholder="Jumlah" />
+      <button onclick="tambahBarang()">Tambah Barang</button>
+    </div>
+
+    <table id="tabel">
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Harga</th>
+          <th>Jumlah</th>
+          <th>Total</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <br />
+
+    <label>Diskon (%): </label>
+    <input id="diskon" type="number" value="0" oninput="updateSummary()" />
+
+    <h3>Total Harga: <span id="totalHarga">0</span></h3>
+    <h3>PPN 11%: <span id="pajak">0</span></h3>
+    <h3>Total Akhir: <span id="totalAkhir">0</span></h3>
+
+    <button onclick="buatStruk()">Buat Struk</button>
+    <button onclick="window.print()">Cetak Struk</button>
+
+    <!-- STRUK -->
+    <div id="struk" style="display: none"></div>
+
+    <script>
+      let daftarBelanja = [];
+
+      function tambahBarang() {
+        let nama = document.getElementById("nama").value;
+        let harga = parseFloat(document.getElementById("harga").value);
+        let jumlah = parseInt(document.getElementById("jumlah").value);
+
+        if (!nama || !harga || !jumlah) {
+          alert("Isi semua data!");
+          return;
+        }
+
+        daftarBelanja.push({ nama, harga, jumlah });
+        renderTabel();
+        updateSummary();
+      }
+
+      function renderTabel() {
+        let tbody = document.querySelector("#tabel tbody");
+        tbody.innerHTML = "";
+
+        daftarBelanja.forEach((item, index) => {
+          let tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item.nama}</td>
+            <td>${item.harga}</td>
+            <td>${item.jumlah}</td>
+            <td>${item.harga * item.jumlah}</td>
+            <td><button onclick="hapusItem(${index})">Hapus</button></td>
+        `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function hapusItem(i) {
+        daftarBelanja.splice(i, 1);
+        renderTabel();
+        updateSummary();
+      }
+
+      function hitungTotal() {
+        return daftarBelanja.reduce(
+          (sum, item) => sum + item.harga * item.jumlah,
+          0
+        );
+      }
+
+      function updateSummary() {
+        let total = hitungTotal();
+        let diskon = parseFloat(document.getElementById("diskon").value) || 0;
+        let totalSetelahDiskon = total - (total * diskon) / 100;
+        let pajak = totalSetelahDiskon * 0.11;
+        let totalAkhir = totalSetelahDiskon + pajak;
+
+        document.getElementById("totalHarga").innerText = total;
+        document.getElementById("pajak").innerText = pajak.toFixed(2);
+        document.getElementById("totalAkhir").innerText = totalAkhir.toFixed(2);
+      }
+
+      function buatStruk() {
+        let total = hitungTotal();
+        let diskon = parseFloat(document.getElementById("diskon").value) || 0;
+        let totalSetelahDiskon = total - (total * diskon) / 100;
+        let pajak = totalSetelahDiskon * 0.11;
+        let totalAkhir = totalSetelahDiskon + pajak;
+
+        let now = new Date().toLocaleString("id-ID");
+
+        let strukHTML = `<h3>STRUK BELANJA</h3>`;
+        strukHTML += `<small>Waktu: ${now}</small><hr>`;
+
+        daftarBelanja.forEach((item) => {
+          strukHTML += `
+            ${item.nama} (${item.jumlah} x ${item.harga}) = ${
+            item.harga * item.jumlah
+          }<br>
+        `;
+        });
+
+        strukHTML += `<hr>
+        Total: ${total}<br>
+        Diskon: ${diskon}%<br>
+        PPN 11%: ${pajak.toFixed(2)}<br>
+        <b>Total Akhir: ${totalAkhir.toFixed(2)}</b>
+    `;
+
+        let div = document.getElementById("struk");
+        div.style.display = "block";
+        div.innerHTML = strukHTML;
+      }
+
+      /* DARK MODE + LOCALSTORAGE */
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark");
+        localStorage.setItem(
+          "darkMode",
+          document.body.classList.contains("dark")
+        );
+      }
+
+      window.onload = () => {
+        if (localStorage.getItem("darkMode") === "true") {
+          document.body.classList.add("dark");
+        }
+      };
+    </script>
+  </body>
+</html>
